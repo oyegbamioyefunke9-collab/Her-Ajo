@@ -5,19 +5,20 @@ import { useApp } from "@/context/AppContext";
 import SilhouetteAvatar from "@/components/SilhouetteAvatar";
 import DecoratedName from "@/components/DecoratedName";
 import { 
-  ShieldCheck, PiggyBank, Users, UserPlus, 
-  Calculator, Search, Bell, Lock, Flame 
+  ShieldCheck, PiggyBank, Users, UserPlus, Calculator, 
+  Search, Bell, Lock, Flame 
 } from "lucide-react";
 
 export default function AppEngine() {
   const { 
-    isUnlocked, lockSession, userName, hairStyle, nameDecoration, 
-    streakCount, totalSavedThisMonth, notifications, unlockSession, pinInput, setPinInput 
+    userName, hairStyle, nameDecoration, streakCount, totalSavedThisMonth, 
+    notifications, lockSession, isUnlocked, unlockSession, pinInput, setPinInput 
   } = useApp();
 
-  const playChime = () => {
+  // Chime trigger
+  const triggerChime = () => {
     const audio = new Audio('/sounds/chime.mp3');
-    audio.play().catch(() => {});
+    audio.play().catch(() => console.log("Sound file not found"));
   };
 
   if (!isUnlocked) {
@@ -33,17 +34,15 @@ export default function AppEngine() {
   }
 
   return (
-    <div className="min-h-screen bg-[#030008] text-zinc-200 p-6 pb-12">
+    <div className="min-h-screen bg-[#030008] text-zinc-200 font-sans p-6 pb-12">
       {/* Header: Name + Streak */}
       <header className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-3">
           <SilhouetteAvatar style={hairStyle} className="w-10 h-10" />
-          <div>
-            <div className="text-sm font-bold flex items-center gap-2">
-              <DecoratedName name={userName} decoration={nameDecoration} />
-              <div className="flex items-center gap-1 bg-orange-950/30 border border-orange-500/20 px-2 py-0.5 rounded-full text-[10px] text-orange-400">
-                <Flame className="w-3 h-3" /> {streakCount}
-              </div>
+          <div className="text-sm font-bold flex items-center gap-2">
+            <DecoratedName name={userName} decoration={nameDecoration} />
+            <div className="flex items-center gap-1 bg-orange-950/30 border border-orange-500/20 px-2 py-0.5 rounded-full text-[10px] text-orange-400">
+              <Flame className="w-3 h-3" /> {streakCount}
             </div>
           </div>
         </div>
@@ -51,14 +50,14 @@ export default function AppEngine() {
       </header>
 
       {/* Urgent Notification Banner */}
-      {notifications.filter(n => n.type === 'urgent').map((n, i) => (
+      {notifications.filter(n => n.text.includes("24h")).map((n, i) => (
         <div key={i} className="mb-6 bg-amber-950/20 border border-amber-500/20 rounded-2xl p-4 flex gap-3 items-center animate-pulse">
           <Bell className="w-5 h-5 text-amber-400" />
           <p className="text-xs text-amber-200">{n.text}</p>
         </div>
       ))}
 
-      {/* Savings Balance Box */}
+      {/* Big Savings Box */}
       <div className="bg-[#16161f] border border-gray-800 rounded-3xl p-8 shadow-2xl mb-8">
         <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Total Savings Balance</span>
         <div className="text-4xl font-extrabold text-white mt-2">₦{totalSavedThisMonth.toLocaleString()}</div>
@@ -76,7 +75,7 @@ export default function AppEngine() {
         ].map((item, i) => (
           <button 
             key={i} 
-            onClick={playChime}
+            onClick={triggerChime}
             className="bg-[#12121a] border border-gray-800 p-4 rounded-3xl flex flex-col items-center gap-3 hover:border-purple-500/50 transition-all active:scale-95"
           >
             <item.icon className="w-6 h-6 text-purple-400" />
