@@ -26,6 +26,10 @@ interface AppContextType {
   executeContribution: (circleId: string, amount: number) => void;
   joinCircleByCode: (code: string) => boolean;
   createNewCircle: (name: string, purpose: string, target: number, duration: string, isInflationProof: boolean) => void;
+  
+  // Restored updaters for profile pictures
+  setHairStyle: (style: string) => void;
+  setNameDecoration: (dec: string) => void;
 }
 
 const AppContext = createContext<AppContextType | null>(null);
@@ -38,8 +42,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [bvnMock, setBvnMock] = useState("");
   
   const [userName] = useState("OYEFUNKE");
-  const [hairStyle] = useState("locs");
-  const [nameDecoration] = useState("tiara");
+  const [hairStyle, setHairStyle] = useState("locs");
+  const [nameDecoration, setNameDecoration] = useState("tiara");
   const [streakCount] = useState(12);
 
   const [notifications, setNotifications] = useState([
@@ -63,7 +67,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const joinCircleByCode = (code: string) => {
-    alert(`Joined circle with code: ${code}`);
     return true;
   };
 
@@ -74,12 +77,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   return (
     <AppContext.Provider value={{ 
       isUnlocked, userName, hairStyle, nameDecoration, streakCount, circles, ledger, notifications, activeTab, kycVerified, bvnMock, isMenuOpen,
-      unlockSession, lockSession, setActiveTab, setBvnMock, setKycVerified, setIsMenuOpen, clearNotifications, executeContribution, joinCircleByCode, createNewCircle
+      unlockSession, lockSession, setActiveTab, setBvnMock, setKycVerified, setIsMenuOpen, clearNotifications, executeContribution, joinCircleByCode, createNewCircle,
+      setHairStyle, setNameDecoration
     }}>
       {children}
     </AppContext.Provider>
   );
 }
 
-// THIS IS THE CRITICAL LINE THAT WAS MISSING OR CACHED:
 export function useApp() { return useContext(AppContext)!; }
