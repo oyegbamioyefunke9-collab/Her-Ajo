@@ -23,7 +23,8 @@ interface AppContextType {
   hasDeviceAccount: boolean;
   isGlowActive: boolean;
   devicePin: string | null;
-  triggerGlowRitual: () => void;
+  userName: string;
+  userImage: string;
   registerAccount: (keys: UserKeys, pin: string) => void;
   unlockSession: (pin: string) => boolean;
   lockSession: () => void;
@@ -32,6 +33,7 @@ interface AppContextType {
   createSavingsBox: (name: string, target: number) => void;
   simulateDeposit: (boxId: string, nairaAmount: number) => void;
   updateCustomQuote: (quote: string) => void;
+  updateProfileDetails: (name: string, imageDataUri: string) => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -43,7 +45,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [isUnlocked, setIsUnlocked] = useState<boolean>(false);
   const [isGlowActive, setIsGlowActive] = useState<boolean>(false);
   const [isIncognito, setIsIncognito] = useState<boolean>(false);
+  const [userName, setUserName] = useState<string>("BLESSED");
+  const [userImage, setUserImage] = useState<string>("");
   const [activeQuote, setActiveQuote] = useState<string>("Your wealth is your private power. Shield it completely.");
+  
   const [savingsBoxes, setSavingsBoxes] = useState<SavingsBox[]>([
     { id: "1", name: "Market Trade Reserve", target: 500, current: 150 },
     { id: "2", name: "Emergency Medical Pool", target: 300, current: 280 },
@@ -54,6 +59,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const storedPin = localStorage.getItem("ha_pin");
     const storedBoxes = localStorage.getItem("ha_boxes");
     const storedQuote = localStorage.getItem("ha_quote");
+    const storedName = localStorage.getItem("ha_name");
+    const storedImg = localStorage.getItem("ha_img");
     
     if (storedPin) {
       setDevicePin(storedPin);
@@ -62,6 +69,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (storedKeys) setUserKeys(JSON.parse(storedKeys));
     if (storedBoxes) setSavingsBoxes(JSON.parse(storedBoxes));
     if (storedQuote) setActiveQuote(storedQuote);
+    if (storedName) setUserName(storedName);
+    if (storedImg) setUserImage(storedImg);
   }, []);
 
   const triggerGlowRitual = () => {
@@ -120,7 +129,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const dollarEquivalent = Math.round((nairaAmount / 1370) * 100) / 100;
     const updated = savingsBoxes.map((box) => {
       if (box.id === boxId) {
-        return { ...box, current: Math.min(box.current + dollarEquivalent, box.target) };
+        return { ...box, current: Math.round((box.current + dollarEquivalent) * 100) / 100 };
       }
       return box;
     });
@@ -131,6 +140,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const updateCustomQuote = (quote: string) => {
     setActiveQuote(quote);
     localStorage.setItem("ha_quote", quote);
+  };
+
+  const updateProfileDetails = (name: string, imageDataUri: string) => {
+    if (name) {
+      setUserName(name);
+      localStorage.setItem("ha_name", name);
+    }
+    if (imageDataUri) {
+      setUserImage(imageDataUri);
+      localStorage.setItem("ha_img", imageDataUri);
+    }
   };
 
   return (
@@ -144,7 +164,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         hasDeviceAccount,
         isGlowActive,
         devicePin,
-        triggerGlowRitual,
+        userName,
+        userImage,
         registerAccount,
         unlockSession,
         lockSession,
@@ -153,6 +174,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         createSavingsBox,
         simulateDeposit,
         updateCustomQuote,
+        updateProfileDetails,
       }}
     >
       {children}
