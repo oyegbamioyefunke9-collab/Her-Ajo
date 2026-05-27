@@ -1,39 +1,47 @@
 "use client";
 
 import React, { useState } from "react";
-import { useRouter } from "next/navigation";
 import { useApp } from "@/context/AppContext";
-import SilhouetteTracker from "@/components/SilhouetteTracker";
 import GlowStateBanner from "@/components/GlowStateBanner";
-import IncognitoToggle from "@/components/IncognitoToggle";
+import DrawerMenu from "@/components/DrawerMenu";
 
-export default function DashboardPage() {
-  const router = useRouter();
-  const { userKeys, savingsBoxes, isIncognito, simulateDeposit, createSavingsBox, logout } = useApp();
+export default function AppEngine() {
+  const { 
+    userKeys, hasDeviceAccount, isUnlocked, isGlowActive, activeQuote,
+    savingsBoxes, isIncognito, simulateDeposit, registerAccount, unlockSession, 
+    lockSession, removeAccountFromDevice
+  } = useApp();
+
+  // Authentication states
+  const [pinInput, setPinInput] = useState("");
+  const [setupStep, setSetupStep] = useState<"landing" | "keys" | "pin">("landing");
+  const [authError, setAuthError] = useState("");
   
-  // Local form tracking states
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [boxName, setBoxName] = useState("");
-  const [boxTarget, setBoxTarget] = useState("");
-  const [boxProfile, setBoxProfile] = useState<"african" | "european" | "asian">("african");
+  // Dashboard transaction handling states
   const [depositAmounts, setDepositAmounts] = useState<Record<string, string>>({});
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-  // Route protection loop: Redirect to sovereignty ritual if keys haven't been generated yet
-  React.useEffect(() => {
-    if (!userKeys) {
-      router.push("/onboarding");
-    }
-  }, [userKeys, router]);
+  // Mock initial setup values
+  const rawGeneratedMnemonic = "wisdom anchor flame genuine vivid cluster dynamic orphan hybrid visual adjust forward";
+  const mockDerivedNpub = "npub1herajo7v6p3x9w88qy2u5kllcs8z3nwq9p0fmslqcrg7ex4003vsqe69v4";
 
-  if (!userKeys) return null;
-
-  const handleCreateBox = (e: React.FormEvent) => {
+  const handleVerifyUnlock = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!boxName || !boxTarget) return;
-    createSavingsBox(boxName, parseFloat(boxTarget), boxProfile);
-    setBoxName("");
-    setBoxTarget("");
-    setShowCreateModal(false);
+    const success = unlockSession(pinInput);
+    if (!success) {
+      setAuthError("INVALID SECURE PIN UTILITY CODE");
+      setPinInput("");
+    } else {
+      setAuthError("");
+      setPinInput("");
+    }
+  };
+
+  const handleCompleteRegistration = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (pinInput.length < 4) return;
+    registerAccount({ mnemonic: rawGeneratedMnemonic, npub: mockDerivedNpub }, pinInput);
+    setPinInput("");
   };
 
   const handleDeposit = (boxId: string) => {
@@ -43,131 +51,232 @@ export default function DashboardPage() {
     setDepositAmounts({ ...depositAmounts, [boxId]: "" });
   };
 
-  // Compute overall financial context summary metrics
-  const totalSaved = savingsBoxes.reduce((acc, box) => acc + box.current, 0);
-  const totalTarget = savingsBoxes.reduce((acc, box) => acc + box.target, 0);
-  const aggregateProgress = totalTarget > 0 ? (totalSaved / totalTarget) * 100 : 0;
-
-  return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-100 p-4 md:p-8 font-sans selection:bg-pink-500/30">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(244,63,94,0.03),transparent_40%)] pointer-events-none" />
-      
-      <main className="max-w-6xl mx-auto space-y-6">
-        
-        {/* TOP BAR ACTION HUB */}
-        <div className="flex items-center justify-between bg-zinc-900/40 border border-zinc-800/80 px-6 py-4 rounded-2xl backdrop-blur-md">
-          <div className="flex items-center gap-3">
-            <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="font-mono text-xs text-zinc-400 tracking-wider">LOCAL NODE ACTIVE // SHIELD_STABLE</span>
-          </div>
-          <div className="flex items-center gap-3">
-            <IncognitoToggle />
-            <button
-              onClick={logout}
-              className="border border-zinc-800 hover:border-red-900/50 text-zinc-500 hover:text-red-400 font-mono text-xs px-3 py-2 rounded-xl transition-all"
-            >
-              Wipe Device Keys
-            </button>
-          </div>
+  // --- 1. OPAQUE GLOW STATE SPLASH RITUAL ---
+  if (isGlowActive) {
+    return (
+      <div className="fixed inset-0 bg-[#04000c] flex flex-col items-center justify-center p-6 z-50 transition-all duration-1000">
+        <div className="absolute w-[500px] h-[500px] bg-purple-600/10 rounded-full blur-[120px] animate-pulse" />
+        <div className="max-w-xl text-center space-y-6 relative animate-fade-in">
+          <span className="text-[10px] font-mono tracking-[0.3em] text-purple-400 uppercase font-bold block">
+            AUTHENTICATED // SECURE SESSION GLOW
+          </span>
+          <h2 className="text-2xl md:text-3xl font-serif italic text-purple-200 text-neon-glow font-medium px-4 leading-relaxed">
+            "{activeQuote}"
+          </h2>
+          <div className="h-[2px] w-12 bg-purple-500/40 mx-auto mt-4 rounded-full" />
         </div>
+      </div>
+    );
+  }
 
-        {/* GLOW STATE AFFIRMATION MATRIX */}
+  // --- 2. FIRST TIME DEVICE ACCESS (LANDING / SEED / PIN) ---
+  if (!hasDeviceAccount) {
+    return (
+      <div className="min-h-screen bg-[#03000a] text-zinc-100 flex items-center justify-center p-4">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(147,51,234,0.04),transparent_50%)] pointer-events-none" />
+        
+        <div className="w-full max-w-md bg-zinc-900/40 border border-purple-950/40 p-8 rounded-3xl shadow-neon-purple backdrop-blur-xl space-y-6">
+          {setupStep === "landing" && (
+            <div className="space-y-6 text-center">
+              <div className="space-y-2">
+                <h1 className="text-3xl font-bold tracking-tight text-white bg-gradient-to-r from-zinc-100 to-purple-300 bg-clip-text text-transparent">
+                  Her-Ajo
+                </h1>
+                <p className="text-xs font-mono text-purple-400/70 uppercase tracking-widest">
+                  Sovereign Stable Balance Protection
+                </p>
+              </div>
+              <p className="text-sm text-zinc-400 leading-relaxed">
+                A secure space for physical cash conversion and financial shielding. No tracking hooks. Total ownership.
+              </p>
+              <button
+                onClick={() => setSetupStep("keys")}
+                className="w-full bg-purple-700 hover:bg-purple-600 text-white font-mono text-sm font-bold py-3.5 rounded-xl transition-all shadow-lg shadow-purple-700/20"
+              >
+                Create Vault Storage
+              </button>
+            </div>
+          )}
+
+          {setupStep === "keys" && (
+            <div className="space-y-5">
+              <div className="text-center">
+                <h2 className="text-lg font-bold text-zinc-200">Your Master Secret Key</h2>
+                <p className="text-xs text-zinc-500 mt-1">Copy down these safety words physically.</p>
+              </div>
+              <div className="bg-black/40 border border-purple-900/30 rounded-xl p-4 font-mono text-xs grid grid-cols-2 gap-2 text-zinc-300">
+                {rawGeneratedMnemonic.split(" ").map((word, i) => (
+                  <div key={i} className="flex gap-2">
+                    <span className="text-purple-500 font-bold">{i+1}.</span>
+                    <span>{word}</span>
+                  </div>
+                ))}
+              </div>
+              <button
+                onClick={() => setSetupStep("pin")}
+                className="w-full bg-purple-700 hover:bg-purple-600 text-white font-mono text-sm font-bold py-3.5 rounded-xl transition-all"
+              >
+                I Have Protected My Key
+              </button>
+            </div>
+          )}
+
+          {setupStep === "pin" && (
+            <form onSubmit={handleCompleteRegistration} className="space-y-4">
+              <div className="text-center space-y-1">
+                <h2 className="text-lg font-bold text-zinc-200">Set Security Lock PIN</h2>
+                <p className="text-xs text-zinc-500">Used for local verification when opening your app.</p>
+              </div>
+              <input
+                type="password"
+                maxLength={6}
+                placeholder="Enter Numeric PIN"
+                value={pinInput}
+                onChange={(e) => setPinInput(e.target.value.replace(/\D/g, ""))}
+                className="w-full bg-black/60 border border-purple-500/30 rounded-xl py-3 text-center tracking-[0.5em] font-mono text-lg focus:outline-none focus:border-purple-500 text-purple-300"
+              />
+              <button
+                type="submit"
+                className="w-full bg-purple-700 hover:bg-purple-600 text-white font-mono text-xs font-bold py-3.5 rounded-xl transition-all"
+              >
+                Instantiate Safe Vault ⚡
+              </button>
+            </form>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // --- 3. PASSWORD LOCKSCREEN FOR EXISTING ACCOUNT ---
+  if (!isUnlocked) {
+    return (
+      <div className="min-h-screen bg-[#03000a] text-zinc-100 flex items-center justify-center p-4">
+        <div className="w-full max-w-sm bg-zinc-900/40 border border-purple-950/40 p-8 rounded-3xl shadow-neon-purple backdrop-blur-xl text-center space-y-6">
+          <div>
+            <h1 className="text-xl font-bold tracking-tight text-zinc-200">Vault Session Locked</h1>
+            <p className="text-xs text-zinc-500 mt-1">Provide your local secure verification PIN</p>
+          </div>
+          
+          <form onSubmit={handleVerifyUnlock} className="space-y-4">
+            <input
+              type="password"
+              maxLength={6}
+              placeholder="••••"
+              value={pinInput}
+              onChange={(e) => setPinInput(e.target.value.replace(/\D/g, ""))}
+              className="w-full bg-black/60 border border-purple-500/30 rounded-xl py-3 text-center tracking-[0.6em] font-mono text-xl focus:outline-none focus:border-purple-500 text-purple-400"
+            />
+            {authError && <p className="text-[10px] font-mono text-red-400 uppercase tracking-wider">{authError}</p>}
+            <button
+              type="submit"
+              className="w-full bg-purple-700 hover:bg-purple-600 text-white font-mono text-xs font-bold py-3.5 rounded-xl transition-all"
+            >
+              Verify & Unlock
+            </button>
+          </form>
+
+          <button
+            onClick={removeAccountFromDevice}
+            className="text-[10px] font-mono text-zinc-600 hover:text-red-400 transition-colors uppercase tracking-wider"
+          >
+            [ Completely Wipe Account From Device ]
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // --- 4. SECURE DASHBOARD VIEW LAYER ---
+  return (
+    <div className="min-h-screen bg-[#03000a] text-zinc-200 font-sans selection:bg-purple-500/30">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(147,51,234,0.02),transparent_40%)] pointer-events-none" />
+      
+      {/* SIDE DRAWER TOGGLE INTERFACE */}
+      <DrawerMenu isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} />
+
+      <header className="max-w-5xl mx-auto px-4 pt-6 flex justify-between items-center">
+        <button 
+          onClick={() => setIsMenuOpen(true)}
+          className="p-2 bg-zinc-900/60 border border-purple-950/40 rounded-xl text-purple-400 font-mono text-xs font-bold flex items-center gap-2 hover:border-purple-500/30"
+        >
+          ☰ System Control
+        </button>
+        
+        <div className="flex items-center gap-4">
+          <button 
+            onClick={lockSession}
+            className="text-xs font-mono text-zinc-500 hover:text-purple-400 transition-colors"
+          >
+            [ Lock Session ]
+          </button>
+        </div>
+      </header>
+
+      <main className="max-w-5xl mx-auto p-4 space-y-6">
+        
         <GlowStateBanner />
 
-        {/* METRIC CARD STRINGS GRID */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="bg-zinc-900/60 border border-zinc-800 p-6 rounded-2xl relative overflow-hidden">
-            <p className="text-xs font-mono text-zinc-500 uppercase tracking-wider">Shielded Global Equity</p>
-            <p className="text-3xl font-bold mt-2 font-mono tracking-tight text-zinc-100">
-              {isIncognito ? "••••.••" : `$${totalSaved.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+        {/* METRICS DISPLAYS GRID */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="bg-zinc-900/20 border border-purple-950/40 p-6 rounded-2xl relative overflow-hidden">
+            <p className="text-xs font-mono text-zinc-500 uppercase tracking-wider">Shielded Asset Capital</p>
+            <p className="text-3xl font-bold mt-2 font-mono tracking-tight text-purple-100 text-neon-glow">
+              {isIncognito ? "••••.••" : `$${savingsBoxes.reduce((a, b) => a + b.current, 0).toFixed(2)}`}
             </p>
-            <span className="text-[10px] text-zinc-400 font-mono block mt-1">Converted Stable USD eCash</span>
           </div>
 
-          <div className="bg-zinc-900/60 border border-zinc-800 p-6 rounded-2xl">
-            <p className="text-xs font-mono text-zinc-500 uppercase tracking-wider">Target Objective Pool</p>
-            <p className="text-3xl font-bold mt-2 font-mono tracking-tight text-zinc-300">
-              {isIncognito ? "••••.••" : `$${totalTarget.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+          <div className="bg-zinc-900/20 border border-purple-950/40 p-6 rounded-2xl">
+            <p className="text-xs font-mono text-zinc-500 uppercase tracking-wider">Identification Sequence</p>
+            <p className="text-xs font-mono text-zinc-400 truncate mt-3 bg-black/40 p-2 rounded-lg border border-purple-950/20">
+              {userKeys?.npub}
             </p>
-            <span className="text-[10px] text-pink-400 font-mono block mt-1 font-bold">{Math.round(aggregateProgress)}% Global Target Filled</span>
-          </div>
-
-          <div className="bg-gradient-to-br from-zinc-900 to-zinc-950 border border-zinc-800 p-6 rounded-2xl flex flex-col justify-between">
-            <div>
-              <p className="text-xs font-mono text-zinc-400 uppercase tracking-wider">Device Relay Link</p>
-              <p className="text-xs font-mono text-pink-400/80 truncate mt-2 font-medium bg-zinc-950 p-2 rounded-lg border border-zinc-800">
-                {userKeys.npub}
-              </p>
-            </div>
-            <button
-              onClick={() => setShowCreateModal(true)}
-              className="mt-4 w-full bg-zinc-800 hover:bg-pink-600 hover:text-white text-zinc-200 text-xs font-mono font-bold py-2.5 rounded-xl transition-all border border-zinc-700 hover:border-pink-500/50 shadow-md"
-            >
-              + Provision New Vault Box
-            </button>
           </div>
         </div>
 
-        {/* VAULT SLOTS GRID LOOP */}
+        {/* HUMAN-CENTRIC SAVINGS CONTAINERS */}
         <div className="space-y-4">
-          <h2 className="text-sm font-mono uppercase tracking-widest text-zinc-400 font-bold">ACTIVE HER-AJO VAULTS</h2>
+          <h2 className="text-xs font-mono uppercase tracking-widest text-purple-400 font-bold">PRIVATE SAVINGS VAULTS</h2>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {savingsBoxes.map((box) => {
-              const boxProgress = box.target > 0 ? (box.current / box.target) * 100 : 0;
+              const progress = (box.current / box.target) * 100;
               return (
-                <div 
-                  key={box.id} 
-                  className="bg-zinc-900/40 border border-zinc-800/80 p-5 rounded-3xl flex gap-6 items-center shadow-lg hover:border-zinc-700/60 transition-all duration-300 group"
-                >
-                  {/* Dynamic Silhouette Progressive Knockout */}
-                  <SilhouetteTracker profile={box.profile} progress={boxProgress} />
+                <div key={box.id} className="bg-zinc-900/30 border border-purple-950/30 p-6 rounded-2xl space-y-4">
+                  <div className="flex justify-between items-start">
+                    <h3 className="font-bold text-zinc-100 text-base">{box.name}</h3>
+                    <span className="text-xs font-mono text-purple-400 font-bold bg-purple-950/40 px-2 py-0.5 rounded border border-purple-900/30">
+                      {Math.round(progress)}% Filled
+                    </span>
+                  </div>
 
-                  {/* Vault Actions Interlocking Panel */}
-                  <div className="flex-1 space-y-4">
-                    <div>
-                      <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-zinc-950 border border-zinc-800 text-zinc-400 uppercase tracking-wider">
-                        {box.profile} Profile Node
-                      </span>
-                      <h3 className="text-lg font-bold text-zinc-100 mt-1.5 tracking-tight group-hover:text-pink-400 transition-colors">
-                        {box.name}
-                      </h3>
-                    </div>
+                  {/* Clean Horizontal Ambient Progress Indicator Bar */}
+                  <div className="w-full bg-black/40 h-1.5 rounded-full overflow-hidden border border-purple-950/20">
+                    <div className="bg-gradient-to-r from-purple-600 to-fuchsia-500 h-full transition-all duration-500" style={{ width: `${progress}%` }} />
+                  </div>
 
-                    <div className="grid grid-cols-2 gap-2 bg-zinc-950/80 p-3 rounded-xl border border-zinc-800/60 font-mono text-xs">
-                      <div>
-                        <span className="text-zinc-500 block text-[10px] uppercase">Saved</span>
-                        <span className="text-zinc-200 font-bold">
-                          {isIncognito ? "•••" : `$${box.current.toFixed(2)}`}
-                        </span>
-                      </div>
-                      <div>
-                        <span className="text-zinc-500 block text-[10px] uppercase">Target</span>
-                        <span className="text-zinc-400">
-                          {isIncognito ? "•••" : `$${box.target.toFixed(2)}`}
-                        </span>
-                      </div>
-                    </div>
+                  <div className="flex justify-between font-mono text-xs text-zinc-400 pt-1">
+                    <span>Balance: {isIncognito ? "•••" : `$${box.current}`}</span>
+                    <span>Target: ${box.target}</span>
+                  </div>
 
-                    {/* Manual Local Fiat Injection Simulator */}
-                    <div className="flex gap-2">
-                      <div className="relative flex-1">
-                        <span className="absolute left-3 top-1/2 -translate-y-1/2 font-mono text-xs text-zinc-500 font-bold">₦</span>
-                        <input
-                          type="number"
-                          placeholder="Amount (Naira)"
-                          value={depositAmounts[box.id] || ""}
-                          onChange={(e) => setDepositAmounts({ ...depositAmounts, [box.id]: e.target.value })}
-                          className="w-full bg-zinc-950 border border-zinc-800 rounded-xl pl-7 pr-3 py-2 text-xs font-mono text-zinc-200 focus:outline-none focus:border-pink-500/50"
-                        />
-                      </div>
-                      <button
-                        onClick={() => handleDeposit(box.id)}
-                        className="bg-zinc-800 hover:bg-zinc-700 text-zinc-200 font-mono text-xs px-3 py-2 rounded-xl border border-zinc-700 transition-all font-bold"
-                      >
-                        Deposit
-                      </button>
+                  <div className="flex gap-2">
+                    <div className="relative flex-1">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 font-mono text-xs text-zinc-500 font-bold">₦</span>
+                      <input
+                        type="number"
+                        placeholder="Amount (Naira)"
+                        value={depositAmounts[box.id] || ""}
+                        onChange={(e) => setDepositAmounts({ ...depositAmounts, [box.id]: e.target.value })}
+                        className="w-full bg-black/60 border border-purple-950/40 rounded-xl pl-7 pr-3 py-2 text-xs font-mono text-zinc-200 focus:outline-none"
+                      />
                     </div>
+                    <button
+                      onClick={() => handleDeposit(box.id)}
+                      className="bg-purple-900/40 hover:bg-purple-700 text-purple-300 hover:text-white font-mono text-xs px-4 py-2 rounded-xl border border-purple-800/40 transition-all font-bold"
+                    >
+                      Deposit
+                    </button>
                   </div>
                 </div>
               );
@@ -176,70 +285,6 @@ export default function DashboardPage() {
         </div>
 
       </main>
-
-      {/* PROVISIONING INTERFACES OVERLAY MODAL */}
-      {showCreateModal && (
-        <div className="fixed inset-0 bg-zinc-950/80 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-fadeIn">
-          <div className="bg-zinc-900 border border-zinc-800 w-full max-w-md p-6 rounded-3xl space-y-4 shadow-2xl relative">
-            <h3 className="text-base font-bold font-mono tracking-tight text-zinc-100">Provision New Savings Node</h3>
-            
-            <form onSubmit={handleCreateBox} className="space-y-4">
-              <div className="space-y-1">
-                <label className="text-[10px] font-mono uppercase text-zinc-400 block font-bold">Vault Purpose Name</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g., Inventory Reserve"
-                  value={boxName}
-                  onChange={(e) => setBoxName(e.target.value)}
-                  className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-xs font-mono text-zinc-200 focus:outline-none focus:border-pink-500"
-                />
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-[10px] font-mono uppercase text-zinc-400 block font-bold">Target Balance (USD Value)</label>
-                <input
-                  type="number"
-                  required
-                  placeholder="e.g., 1000"
-                  value={boxTarget}
-                  onChange={(e) => setBoxTarget(e.target.value)}
-                  className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-xs font-mono text-zinc-200 focus:outline-none focus:border-pink-500"
-                />
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-[10px] font-mono uppercase text-zinc-400 block font-bold">Cultural Silhouette Variant Profile</label>
-                <select
-                  value={boxProfile}
-                  onChange={(e) => setBoxProfile(e.target.value as "african" | "european" | "asian")}
-                  className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-xs font-mono text-zinc-300 focus:outline-none focus:border-pink-500"
-                >
-                  <option value="african">African Textured Crown Silhouette</option>
-                  <option value="asian">Asian Geometric Sharp Bob Silhouette</option>
-                  <option value="european">European Flowing Straight Silhouette</option>
-                </select>
-              </div>
-
-              <div className="flex gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setShowCreateModal(false)}
-                  className="w-1/2 border border-zinc-800 text-zinc-400 font-mono text-xs py-2.5 rounded-xl hover:bg-zinc-800 transition-all"
-                >
-                  Abort Setup
-                </button>
-                <button
-                  type="submit"
-                  className="w-1/2 bg-pink-600 hover:bg-pink-500 text-white font-mono text-xs py-2.5 rounded-xl font-bold shadow-lg shadow-pink-600/20 transition-all"
-                >
-                  Instantiate Box
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
