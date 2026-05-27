@@ -7,7 +7,6 @@ export interface SavingsBox {
   name: string;
   target: number;
   current: number;
-  profile: "african" | "european" | "asian";
 }
 
 interface UserKeys {
@@ -20,10 +19,17 @@ interface AppContextType {
   savingsBoxes: SavingsBox[];
   isIncognito: boolean;
   activeQuote: string;
-  login: (keys: UserKeys) => void;
-  logout: () => void;
+  isUnlocked: boolean;
+  hasDeviceAccount: boolean;
+  isGlowActive: boolean;
+  devicePin: string | null;
+  triggerGlowRitual: () => void;
+  registerAccount: (keys: UserKeys, pin: string) => void;
+  unlockSession: (pin: string) => boolean;
+  lockSession: () => void;
+  removeAccountFromDevice: () => void;
   toggleIncognito: () => void;
-  createSavingsBox: (name: string, target: number, profile: "african" | "european" | "asian") => void;
+  createSavingsBox: (name: string, target: number) => void;
   simulateDeposit: (boxId: string, nairaAmount: number) => void;
   updateCustomQuote: (quote: string) => void;
 }
@@ -32,53 +38,86 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [userKeys, setUserKeys] = useState<UserKeys | null>(null);
+  const [devicePin, setDevicePin] = useState<string | null>(null);
+  const [hasDeviceAccount, setHasDeviceAccount] = useState<boolean>(false);
+  const [isUnlocked, setIsUnlocked] = useState<boolean>(false);
+  const [isGlowActive, setIsGlowActive] = useState<boolean>(false);
   const [isIncognito, setIsIncognito] = useState<boolean>(false);
-  const [activeQuote, setActiveQuote] = useState<string>("Your wealth is your power. Shield it wisely.");
+  const [activeQuote, setActiveQuote] = useState<string>("Your wealth is your private power. Shield it completely.");
   const [savingsBoxes, setSavingsBoxes] = useState<SavingsBox[]>([
-    { id: "1", name: "Market Shop Capital", target: 500, current: 150, profile: "african" },
-    { id: "2", name: "Emergency Medical Vault", target: 300, current: 280, profile: "asian" },
+    { id: "1", name: "Market Trade Reserve", target: 500, current: 150 },
+    { id: "2", name: "Emergency Medical Pool", target: 300, current: 280 },
   ]);
 
-  // Load local state safely on the client
   useEffect(() => {
-    const storedKeys = localStorage.getItem("hj_keys");
-    const storedBoxes = localStorage.getItem("hj_boxes");
-    const storedQuote = localStorage.getItem("hj_quote");
+    const storedKeys = localStorage.getItem("ha_keys");
+    const storedPin = localStorage.getItem("ha_pin");
+    const storedBoxes = localStorage.getItem("ha_boxes");
+    const storedQuote = localStorage.getItem("ha_quote");
     
+    if (storedPin) {
+      setDevicePin(storedPin);
+      setHasDeviceAccount(true);
+    }
     if (storedKeys) setUserKeys(JSON.parse(storedKeys));
     if (storedBoxes) setSavingsBoxes(JSON.parse(storedBoxes));
     if (storedQuote) setActiveQuote(storedQuote);
   }, []);
 
-  const login = (keys: UserKeys) => {
-    setUserKeys(keys);
-    localStorage.setItem("hj_keys", JSON.stringify(keys));
+  const triggerGlowRitual = () => {
+    setIsGlowActive(true);
+    setTimeout(() => {
+      setIsGlowActive(false);
+    }, 4000);
   };
 
-  const logout = () => {
+  const registerAccount = (keys: UserKeys, pin: string) => {
+    setUserKeys(keys);
+    setDevicePin(pin);
+    setHasDeviceAccount(true);
+    setIsUnlocked(true);
+    localStorage.setItem("ha_keys", JSON.stringify(keys));
+    localStorage.setItem("ha_pin", pin);
+    triggerGlowRitual();
+  };
+
+  const unlockSession = (pin: string): boolean => {
+    if (pin === devicePin) {
+      setIsUnlocked(true);
+      triggerGlowRitual();
+      return true;
+    }
+    return false;
+  };
+
+  const lockSession = () => {
+    setIsUnlocked(false);
+  };
+
+  const removeAccountFromDevice = () => {
     setUserKeys(null);
-    localStorage.removeItem("hj_keys");
+    setDevicePin(null);
+    setHasDeviceAccount(false);
+    setIsUnlocked(false);
+    localStorage.clear();
   };
 
   const toggleIncognito = () => setIsIncognito((prev) => !prev);
 
-  const createSavingsBox = (name: string, target: number, profile: "african" | "european" | "asian") => {
+  const createSavingsBox = (name: string, target: number) => {
     const newBox: SavingsBox = {
       id: Math.random().toString(36).substring(7),
       name,
       target,
       current: 0,
-      profile,
     };
     const updated = [...savingsBoxes, newBox];
     setSavingsBoxes(updated);
-    localStorage.setItem("hj_boxes", JSON.stringify(updated));
+    localStorage.setItem("ha_boxes", JSON.stringify(updated));
   };
 
   const simulateDeposit = (boxId: string, nairaAmount: number) => {
-    // Mock conversion: ₦1,370 = $1 USD stable eCash
     const dollarEquivalent = Math.round((nairaAmount / 1370) * 100) / 100;
-    
     const updated = savingsBoxes.map((box) => {
       if (box.id === boxId) {
         return { ...box, current: Math.min(box.current + dollarEquivalent, box.target) };
@@ -86,13 +125,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       return box;
     });
     setSavingsBoxes(updated);
-    localStorage.setItem("hj_boxes", JSON.stringify(updated));
+    localStorage.setItem("ha_boxes", JSON.stringify(updated));
   };
 
   const updateCustomQuote = (quote: string) => {
     setActiveQuote(quote);
-    localStorage.setItem("hj_quote", quote);
-    // In production, this block signs and publishes a custom event to Nostr relays
+    localStorage.setItem("ha_quote", quote);
   };
 
   return (
@@ -102,8 +140,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         savingsBoxes,
         isIncognito,
         activeQuote,
-        login,
-        logout,
+        isUnlocked,
+        hasDeviceAccount,
+        isGlowActive,
+        devicePin,
+        triggerGlowRitual,
+        registerAccount,
+        unlockSession,
+        lockSession,
+        removeAccountFromDevice,
         toggleIncognito,
         createSavingsBox,
         simulateDeposit,
