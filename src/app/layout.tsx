@@ -1,17 +1,26 @@
-import { AppProvider } from "@/context/AppContext";
+import type { Metadata } from "next";
+import { Inter } from "next/font/google";
 import "./globals.css";
-import { Metadata } from "next";
+import { AppProvider } from "@/context/AppContext";
+
+const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Her-Ajo",
-  description: "Sovereign privacy dollar savings infrastructure",
+  title: "Opayque | Secure Vault",
+  description: "Advanced savings and shielded vault infrastructure",
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
   return (
     <html lang="en">
-      <body className="bg-[#03000a] text-zinc-100 antialiased">
-        <AppProvider>{children}</AppProvider>
+      <body className={`${inter.className} bg-[#030008] text-zinc-200 antialiased`}>
+        <AppProvider>
+          {children}
+        </AppProvider>
       </body>
     </html>
   );
