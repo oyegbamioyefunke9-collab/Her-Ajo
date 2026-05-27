@@ -25,9 +25,18 @@ interface AppContextType {
   clearNotifications: () => void;
   executeContribution: (circleId: string, amount: number) => void;
   joinCircleByCode: (code: string) => boolean;
-  createNewCircle: (name: string, purpose: string, target: number, duration: string, isInflationProof: boolean) => void;
   
-  // Restored updaters for profile pictures
+  // Updated createNewCircle with inflation proof + more Ajo fields
+  createNewCircle: (
+    name: string, 
+    purpose: string, 
+    target: number, 
+    duration: string, 
+    isInflationProof: boolean,
+    numMembers?: number
+  ) => void;
+  
+  // Restored updaters for profile
   setHairStyle: (style: string) => void;
   setNameDecoration: (dec: string) => void;
 }
@@ -51,38 +60,107 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   ]);
 
   const [circles, setCircles] = useState([
-    { id: "1", name: "Market Trade", inviteCode: "MKT-123", current: 500, target: 1000, hasPaidThisRound: [] }
+    { 
+      id: "1", 
+      name: "Market Trade", 
+      purpose: "Business Capital",
+      inviteCode: "MKT-123", 
+      current: 500, 
+      target: 1000, 
+      duration: "weekly",
+      isInflationProof: false,
+      hasPaidThisRound: [],
+      nextTurn: "Tunde",
+      numMembers: 6,
+      members: ["OYEFUNKE", "Tunde", "Amina", "Fatima", "Bolu", "Chidi"]
+    }
   ]);
 
   const [ledger, setLedger] = useState([
     { id: "1", type: "Deposit", circleName: "Global Vault", date: "Today", amount: 150 }
   ]);
 
-  const unlockSession = (pin: string) => { if (pin.length >= 4) setIsUnlocked(true); };
+  const unlockSession = (pin: string) => { 
+    if (pin.length >= 4) setIsUnlocked(true); 
+  };
+  
   const lockSession = () => setIsUnlocked(false);
   const clearNotifications = () => setNotifications([]);
   
   const executeContribution = (circleId: string, amount: number) => {
-    setLedger(prev => [{ id: Date.now().toString(), type: "Deposit", circleName: circleId, date: "Just now", amount }, ...prev]);
+    setLedger(prev => [{ 
+      id: Date.now().toString(), 
+      type: "Deposit", 
+      circleName: circleId, 
+      date: "Just now", 
+      amount 
+    }, ...prev]);
   };
 
   const joinCircleByCode = (code: string) => {
+    // Mock join logic
     return true;
   };
 
-  const createNewCircle = (name: string, purpose: string, target: number, duration: string, isInflationProof: boolean) => {
-    setCircles(prev => [...prev, { id: Date.now().toString(), name, inviteCode: `NEW-${Math.floor(Math.random()*1000)}`, current: 0, target, hasPaidThisRound: [] }]);
+  const createNewCircle = (
+    name: string, 
+    purpose: string, 
+    target: number, 
+    duration: string, 
+    isInflationProof: boolean,
+    numMembers: number = 6
+  ) => {
+    const newCircle = {
+      id: Date.now().toString(),
+      name,
+      purpose: purpose || "General Ajo",
+      inviteCode: `HER-${Math.floor(Math.random() * 9000) + 1000}`,
+      current: 0,
+      target,
+      duration,
+      isInflationProof,
+      hasPaidThisRound: [],
+      nextTurn: "You", // First turn usually the creator
+      numMembers,
+      members: [userName]
+    };
+    
+    setCircles(prev => [...prev, newCircle]);
   };
 
   return (
     <AppContext.Provider value={{ 
-      isUnlocked, userName, hairStyle, nameDecoration, streakCount, circles, ledger, notifications, activeTab, kycVerified, bvnMock, isMenuOpen,
-      unlockSession, lockSession, setActiveTab, setBvnMock, setKycVerified, setIsMenuOpen, clearNotifications, executeContribution, joinCircleByCode, createNewCircle,
-      setHairStyle, setNameDecoration
+      isUnlocked, 
+      userName, 
+      hairStyle, 
+      nameDecoration, 
+      streakCount, 
+      circles, 
+      ledger, 
+      notifications, 
+      activeTab, 
+      kycVerified, 
+      bvnMock, 
+      isMenuOpen,
+
+      unlockSession, 
+      lockSession, 
+      setActiveTab, 
+      setBvnMock, 
+      setKycVerified, 
+      setIsMenuOpen, 
+      clearNotifications, 
+      executeContribution, 
+      joinCircleByCode, 
+      createNewCircle,
+      setHairStyle, 
+      setNameDecoration
     }}>
       {children}
     </AppContext.Provider>
   );
 }
 
-export function useApp() { return useContext(AppContext)!; }
+export function useApp() { 
+  return useContext(AppContext)!; 
+}
