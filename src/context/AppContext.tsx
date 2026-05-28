@@ -11,14 +11,14 @@ interface AppContextType {
   circles: any[];
   ledger: any[];
   notifications: any[];
-  activeTab: string;
+  activeTab: string; // Stays exposed
   kycVerified: boolean;
   bvnMock: string;
   isMenuOpen: boolean;
   
   unlockSession: (pin: string) => void;
   lockSession: () => void;
-  setActiveTab: (tab: string) => void;
+  setActiveTab: (tab: string) => void; // <-- CONFIRMED IN TYPE DEFINITION
   setBvnMock: (bvn: string) => void;
   setKycVerified: (status: boolean) => void;
   setIsMenuOpen: (status: boolean) => void;
@@ -26,7 +26,6 @@ interface AppContextType {
   executeContribution: (circleId: string, amount: number) => void;
   joinCircleByCode: (code: string) => boolean;
   
-  // Synced with page.tsx to include maturityDate and turnOrder array
   createNewCircle: (
     name: string, 
     purpose: string, 
@@ -36,7 +35,6 @@ interface AppContextType {
     turnOrder: string[]
   ) => void;
   
-  // Restored updaters for profile
   setHairStyle: (style: string) => void;
   setNameDecoration: (dec: string) => void;
 }
@@ -46,7 +44,7 @@ const AppContext = createContext<AppContextType | null>(null);
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [isUnlocked, setIsUnlocked] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState("home");
+  const [activeTab, setActiveTab] = useState("home"); // The active layout selector
   const [kycVerified, setKycVerified] = useState(false);
   const [bvnMock, setBvnMock] = useState("");
   
@@ -68,7 +66,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       current: 500, 
       target: 1000, 
       duration: "12 Weeks",
-      maturityDate: "2026-08-15", // Added to mock data
+      maturityDate: "2026-12-15",
       isInflationProof: false,
       hasPaidThisRound: [],
       nextTurn: "Tunde",
@@ -78,7 +76,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   ]);
 
   const [ledger, setLedger] = useState([
-    { id: "1", type: "Deposit", circleName: "Global Vault", date: "Today", amount: 150 }
+    { id: "1", type: "Deposit", circleName: "Market Trade Setup", date: "Today", amount: 500 }
   ]);
 
   const unlockSession = (pin: string) => { 
@@ -99,11 +97,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const joinCircleByCode = (code: string) => {
-    // Mock join logic
     return true;
   };
 
-  // Synced implementation to handle maturityDate and the turnOrder array
   const createNewCircle = (
     name: string, 
     purpose: string, 
@@ -148,7 +144,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
       unlockSession, 
       lockSession, 
-      setActiveTab, 
+      setActiveTab, // <-- PASSED DOWN VIA VALUE ENGINE TO PREVENT 404/COMPILE FAIL
       setBvnMock, 
       setKycVerified, 
       setIsMenuOpen, 
