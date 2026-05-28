@@ -12,9 +12,9 @@ import {
 export default function AppEngine() {
   const { 
     isUnlocked, userName, hairStyle, setHairStyle, nameDecoration, streakCount, circles, 
-    notifications, isMenuOpen, setIsMenuOpen, lockSession, executeContribution, 
-    clearNotifications, unlockSession, activeTab, ledger, kycVerified, bvnMock, 
-    setBvnMock, setKycVerified, joinCircleByCode, createNewCircle
+    notifications, isMenuOpen, setIsMenuOpen, lockSession, clearNotifications, 
+    unlockSession, activeTab, kycVerified, bvnMock, setBvnMock, setKycVerified, 
+    joinCircleByCode, createNewCircle
   } = useApp();
 
   const [pinInput, setPinInput] = useState("");
@@ -29,9 +29,11 @@ export default function AppEngine() {
   const [cName, setCName] = useState("");
   const [cPurpose, setCPurpose] = useState("");
   const [cAmt, setCAmt] = useState("");
+  const [cDuration, setCDuration] = useState("12 Weeks");
+  const [cMaturity, setCMaturity] = useState("2026-08-15");
   const [joinCodeIn, setJoinCodeIn] = useState("");
 
-  const globalUSD = circles.reduce((acc, c) => acc + c.current, 0);
+  const globalUSD = circles?.reduce((acc: any, c: any) => acc + (c.current || 0), 0) || 0;
   const globalNGN = Math.round(globalUSD * 1370);
 
   const playChime = () => {
@@ -46,7 +48,8 @@ export default function AppEngine() {
   };
 
   useEffect(() => {
-    const needsUrgentPayment = circles.some(c => !c.hasPaidThisRound.includes(userName));
+    if (!circles) return;
+    const needsUrgentPayment = circles.some((c: any) => c.hasPaidThisRound && !c.hasPaidThisRound.includes(userName));
     if (needsUrgentPayment) {
       setUrgentNotification("Urgent: You have a circle contribution due in less than 24 hours.");
     } else {
@@ -54,10 +57,10 @@ export default function AppEngine() {
     }
   }, [circles, userName]);
 
-  const handleCreateCircle = (e: React.FormEvent, isInflationProof: boolean) => {
+  const handleCreateCircle = (e: React.FormEvent) => {
     e.preventDefault();
     if (cName && cAmt) { 
-      createNewCircle(cName, cPurpose, parseFloat(cAmt), "weekly", isInflationProof); 
+      createNewCircle(cName, cPurpose, parseFloat(cAmt), cDuration, cMaturity, [userName, "Tunde"]); 
       setCName(""); setCPurpose(""); setCAmt(""); 
       setActiveModal(null); 
       triggerSuccessGlow();
@@ -72,7 +75,7 @@ export default function AppEngine() {
     }
   };
 
-  // 3D Button & Card Utility Classes
+  // 3D Visual Constants
   const button3DPrimary = "w-full bg-gradient-to-b from-[#9D33FF] to-[#6A0DAD] shadow-[0_6px_12px_rgba(157,51,255,0.4),inset_0_2px_2px_rgba(255,255,255,0.3),inset_0_-4px_4px_rgba(0,0,0,0.2)] text-white font-mono text-xs py-4 rounded-2xl font-bold tracking-widest transition-all active:translate-y-1 active:shadow-[inset_0_4px_8px_rgba(0,0,0,0.5),0_0px_0px_rgba(157,51,255,0)] border border-purple-400/30";
   const button3DSecondary = "w-full bg-gradient-to-b from-zinc-700 to-zinc-900 shadow-[0_6px_12px_rgba(0,0,0,0.6),inset_0_2px_2px_rgba(255,255,255,0.1),inset_0_-4px_4px_rgba(0,0,0,0.4)] text-zinc-300 font-mono text-xs py-4 rounded-2xl font-bold tracking-widest transition-all active:translate-y-1 active:shadow-[inset_0_4px_8px_rgba(0,0,0,0.6)] border border-zinc-600/30";
   const input3D = "w-full bg-[#050208] border border-white/5 shadow-[inset_0_4px_8px_rgba(0,0,0,0.8),0_1px_0_rgba(255,255,255,0.05)] rounded-2xl px-4 py-4 text-xs font-mono text-white focus:outline-none focus:border-purple-500/50 transition-colors";
@@ -84,14 +87,14 @@ export default function AppEngine() {
         <form onSubmit={(e) => { e.preventDefault(); unlockSession(pinInput); }} className={`${card3D} w-full max-w-sm p-8 text-center space-y-6`}>
           <h1 className="text-sm font-bold text-zinc-300 uppercase tracking-widest drop-shadow-md">Vault Locked</h1>
           <input type="password" maxLength={6} placeholder="••••" value={pinInput} onChange={(e) => setPinInput(e.target.value.replace(/\D/g, ""))} className={`${input3D} text-center tracking-[0.6em] text-lg text-purple-400`} />
-          <button type="submit" className={button3DPrimary}>AUTHORIZE ENTRY</button>
+          <button type="submit" className={button3DPrimary}>LOG IN</button>
         </form>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#030005] text-zinc-200 font-sans pb-12 relative overflow-x-hidden">
+    <div className="min-h-screen w-full bg-[#030005] text-zinc-200 font-sans pb-12 relative overflow-x-hidden">
       
       {/* 1.5s Success Glow Overlay */}
       {actionGlow && (
@@ -117,13 +120,13 @@ export default function AppEngine() {
         <div className="flex items-center gap-4 relative">
           <button onClick={() => setShowNotifDropdown(!showNotifDropdown)} className="relative text-zinc-400 hover:text-purple-400 transition-colors drop-shadow-md active:translate-y-0.5">
             <Bell className="w-6 h-6" />
-            {notifications.length > 0 && <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 border-2 border-[#030005] rounded-full shadow-[0_0_8px_rgba(239,68,68,0.6)]" />}
+            {notifications?.length > 0 && <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 border-2 border-[#030005] rounded-full shadow-[0_0_8px_rgba(239,68,68,0.6)]" />}
           </button>
           
           {showNotifDropdown && (
             <div className="absolute right-0 top-10 w-64 bg-gradient-to-b from-[#1a1025] to-[#0a0514] border border-purple-500/30 p-3 rounded-2xl shadow-[0_20px_40px_rgba(0,0,0,0.9),inset_0_1px_1px_rgba(255,255,255,0.1)] space-y-2 text-xs z-50">
               <div className="flex justify-between items-center border-b border-purple-900/30 pb-1.5"><span className="font-mono text-[10px] text-purple-400 font-bold tracking-wider">ALERTS</span><button onClick={clearNotifications} className="text-[9px] text-zinc-500 hover:text-zinc-300">[ Clear ]</button></div>
-              {notifications.length === 0 ? <p className="text-zinc-600 text-[11px] py-1">No alerts active.</p> : notifications.map((n: any, i: number) => (
+              {!notifications || notifications.length === 0 ? <p className="text-zinc-600 text-[11px] py-1">No alerts active.</p> : notifications.map((n: any, i: number) => (
                 <div key={i} className="border-b border-purple-900/10 pb-1.5 last:border-0 pt-1"><p className="text-zinc-300 text-[11px] leading-tight drop-shadow-sm">{n.text}</p></div>
               ))}
             </div>
@@ -132,10 +135,11 @@ export default function AppEngine() {
         </div>
       </header>
 
-      <main className="max-w-md mx-auto px-4 mt-8 space-y-6">
+      {/* MAIN CONTENT */}
+      <main className="max-w-md mx-auto px-4 mt-8 flex flex-col flex-1 min-h-[60vh] space-y-6">
         
-        {/* TAB 1: DASHBOARD */}
-        {activeTab === "home" && (
+        {/* TAB 1: DASHBOARD (Fallback if activeTab is not set) */}
+        {(activeTab === "home" || !activeTab) && (
           <div className="space-y-6 animate-fade-in">
             {urgentNotification && (
               <div className="bg-gradient-to-r from-amber-900/40 to-black border border-amber-500/40 p-4 rounded-2xl flex items-start gap-3 shadow-[0_8px_16px_rgba(0,0,0,0.5),inset_0_1px_1px_rgba(255,255,255,0.1)]">
@@ -170,63 +174,68 @@ export default function AppEngine() {
           </div>
         )}
 
-        {/* TAB 2: CIRCLES - Integrated with restored registry view */}
+        {/* TAB 2: CIRCLES / REGISTRY */}
         {activeTab === "circles" && (
           <div className="space-y-4 animate-fade-in">
             <div className="flex justify-between items-center border-b border-purple-900/30 pb-2">
               <h2 className="text-sm font-mono text-purple-400 font-bold uppercase tracking-wider drop-shadow-md">My Active Circles</h2>
             </div>
             
-            {circles.map(c => {
-              const progPercent = (c.current / c.target) * 100;
-              return (
-                <div key={c.id} className={`${card3D} p-6 space-y-5`}>
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h3 className="text-lg font-bold text-white tracking-tight drop-shadow-md">{c.name}</h3>
-                      <span className="text-[10px] font-mono text-zinc-500 block mt-1">Invite Code: <strong className="text-purple-400 select-all">{c.inviteCode}</strong></span>
+            {!circles || circles.length === 0 ? (
+              <div className={`${card3D} p-8 text-center`}>
+                <p className="text-zinc-500 font-mono text-xs">No active circles found.</p>
+              </div>
+            ) : (
+              circles.map((c: any) => {
+                const progPercent = c.target ? (c.current / c.target) * 100 : 0;
+                return (
+                  <div key={c.id} className={`${card3D} p-6 space-y-5`}>
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h3 className="text-lg font-bold text-white tracking-tight drop-shadow-md">{c.name}</h3>
+                        <span className="text-[10px] font-mono text-zinc-500 block mt-1">Invite Code: <strong className="text-purple-400 select-all">{c.inviteCode}</strong></span>
+                      </div>
                     </div>
-                  </div>
-
-                  <div className="flex justify-between text-[10px] text-zinc-400 uppercase tracking-widest">
-                    <span>Duration: {c.duration}</span>
-                    <span>Maturity: {c.maturityDate}</span>
-                  </div>
-
-                  <div className="space-y-2">
-                    <div className="w-full bg-[#050208] h-3 rounded-full overflow-hidden shadow-[inset_0_2px_4px_rgba(0,0,0,0.8)] border border-white/5">
-                      <div className="bg-gradient-to-r from-purple-600 to-[#b259ff] h-full transition-all duration-300 shadow-[0_0_10px_rgba(157,51,255,0.6)]" style={{ width: `${Math.min(progPercent, 100)}%` }} />
+                    
+                    <div className="flex justify-between text-[10px] text-zinc-400 font-mono uppercase tracking-widest bg-[#050208] p-3 rounded-xl border border-white/5">
+                      <div className="flex flex-col gap-1">
+                        <span className="text-zinc-600">DURATION</span>
+                        <span className="text-zinc-200">{c.duration || "N/A"}</span>
+                      </div>
+                      <div className="flex flex-col gap-1 text-right">
+                        <span className="text-zinc-600">MATURITY</span>
+                        <span className="text-zinc-200">{c.maturityDate || "N/A"}</span>
+                      </div>
                     </div>
-                    <div className="flex justify-between font-mono text-[10px] text-zinc-400 font-bold">
-                      <span>Saved: ${c.current}</span>
-                      <span>Target: ${c.target}</span>
+
+                    <div className="bg-gradient-to-r from-purple-900/20 to-black p-3 rounded-xl border border-purple-500/20 flex items-center justify-between">
+                      <p className="text-[10px] text-purple-400/80 font-bold uppercase tracking-widest">Next Turn</p>
+                      <p className="text-sm text-purple-300 font-mono font-bold">{c.nextTurn || "Pending"}</p>
                     </div>
-                  </div>
 
-                  <div className="bg-black/40 p-3 rounded-xl border border-white/5">
-                    <p className="text-[10px] text-zinc-500 font-bold">NEXT TURN</p>
-                    <p className="text-sm text-purple-300 font-mono">{c.nextTurn}</p>
+                    <div className="space-y-2">
+                      <div className="w-full bg-[#050208] h-3 rounded-full overflow-hidden shadow-[inset_0_2px_4px_rgba(0,0,0,0.8)] border border-white/5">
+                        <div className="bg-gradient-to-r from-purple-600 to-[#b259ff] h-full transition-all duration-300 shadow-[0_0_10px_rgba(157,51,255,0.6)]" style={{ width: `${Math.min(progPercent, 100)}%` }} />
+                      </div>
+                      <div className="flex justify-between font-mono text-[10px] text-zinc-400 font-bold">
+                        <span>Saved: ${c.current || 0}</span>
+                        <span>Target: ${c.target || 0}</span>
+                      </div>
+                    </div>
+                    
+                    <button onClick={triggerSuccessGlow} className={button3DPrimary}>CONTRIBUTE</button>
                   </div>
-
-                  <button 
-                    onClick={() => {
-                      // You can call executeContribution(c.id) here if needed
-                      triggerSuccessGlow();
-                    }} 
-                    className={button3DPrimary}
-                  >
-                    CONTRIBUTE
-                  </button>
-                </div>
-              );
-            })}
+                );
+              })
+            )}
           </div>
         )}
 
-        {/* TAB 4: PROFILE */}
+        {/* TAB 3: PROFILE */}
         {activeTab === "profile" && (
           <div className="space-y-6 animate-fade-in">
             <div className={`${card3D} p-8 text-center space-y-4`}>
+              {/* Clickable Avatar to test state updates */}
               <button 
                 onClick={() => setHairStyle(hairStyle === 'locs' ? 'fade' : hairStyle === 'fade' ? 'afro' : 'locs')}
                 className="mx-auto block p-1 bg-gradient-to-b from-purple-500 to-[#050208] rounded-full shadow-[0_8px_16px_rgba(157,51,255,0.3)] active:scale-95 transition-transform"
@@ -254,16 +263,23 @@ export default function AppEngine() {
 
       {/* --- UNIFIED MODAL RENDERER --- */}
       {activeModal && (
-        <div className="fixed inset-0 bg-black/90 backdrop-blur-xl flex items-center justify-center p-4 z-50 animate-fade-in">
+        <div className="fixed inset-0 bg-black/90 backdrop-blur-xl flex items-center justify-center p-4 z-50 animate-fade-in overflow-y-auto">
           
           {/* Creation Modals */}
           {(activeModal === 'create-usd' || activeModal === 'create-regular' || activeModal === 'create-group') && (
-            <form onSubmit={(e) => handleCreateCircle(e, activeModal === 'create-usd')} className={`${card3D} w-full max-w-sm p-8 space-y-5`}>
+            <form onSubmit={handleCreateCircle} className={`${card3D} w-full max-w-sm p-8 space-y-5 my-auto`}>
               <h3 className="text-sm font-bold font-mono text-purple-400 uppercase tracking-wider drop-shadow-md">
                 {activeModal === 'create-usd' ? 'Save in USD Plan' : activeModal === 'create-regular' ? 'Regular Plan' : 'Group Plan'}
               </h3>
               <input type="text" required placeholder="Plan Name" value={cName} onChange={(e) => setCName(e.target.value)} className={input3D} />
               <input type="number" required placeholder="Target Amount" value={cAmt} onChange={(e) => setCAmt(e.target.value)} className={input3D} />
+              
+              <div className="space-y-3 pt-2 border-t border-purple-900/30">
+                <p className="text-[10px] text-zinc-500 font-mono uppercase tracking-widest">Plan Details</p>
+                <input type="text" required placeholder="Duration (e.g. 12 Weeks)" value={cDuration} onChange={(e) => setCDuration(e.target.value)} className={input3D} />
+                <input type="date" required value={cMaturity} onChange={(e) => setCMaturity(e.target.value)} className={input3D} />
+              </div>
+
               <div className="flex gap-3 pt-4">
                 <button type="button" onClick={() => setActiveModal(null)} className={button3DSecondary}>CANCEL</button>
                 <button type="submit" className={button3DPrimary}>CREATE</button>
@@ -273,7 +289,7 @@ export default function AppEngine() {
 
           {/* Join Group Modal */}
           {activeModal === 'join-group' && (
-            <div className={`${card3D} w-full max-w-sm p-8 space-y-5`}>
+            <div className={`${card3D} w-full max-w-sm p-8 space-y-5 my-auto`}>
               <h3 className="text-sm font-bold font-mono text-purple-400 uppercase tracking-wider drop-shadow-md">Join Group</h3>
               <input type="text" placeholder="Enter Invite Code" value={joinCodeIn} onChange={(e) => setJoinCodeIn(e.target.value)} className={`${input3D} uppercase tracking-widest`} />
               <div className="flex gap-3 pt-4">
@@ -285,7 +301,7 @@ export default function AppEngine() {
 
           {/* Placeholder Modals */}
           {(activeModal === 'calc-goal' || activeModal === 'find-group') && (
-            <div className={`${card3D} w-full max-w-sm p-8 text-center space-y-5`}>
+            <div className={`${card3D} w-full max-w-sm p-8 text-center space-y-5 my-auto`}>
               <div className="w-16 h-16 bg-gradient-to-b from-[#1a1025] to-[#0a0514] shadow-[inset_0_2px_4px_rgba(0,0,0,0.8),0_1px_0_rgba(255,255,255,0.05)] border border-white/5 rounded-full flex items-center justify-center mx-auto text-purple-400">
                 {activeModal === 'calc-goal' ? <Calculator className="drop-shadow-[0_0_8px_currentColor]" /> : <Search className="drop-shadow-[0_0_8px_currentColor]" />}
               </div>
