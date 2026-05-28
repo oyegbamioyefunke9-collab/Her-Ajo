@@ -26,14 +26,14 @@ interface AppContextType {
   executeContribution: (circleId: string, amount: number) => void;
   joinCircleByCode: (code: string) => boolean;
   
-  // Updated createNewCircle with inflation proof + more Ajo fields
+  // Synced with page.tsx to include maturityDate and turnOrder array
   createNewCircle: (
     name: string, 
     purpose: string, 
     target: number, 
     duration: string, 
-    isInflationProof: boolean,
-    numMembers?: number
+    maturityDate: string,
+    turnOrder: string[]
   ) => void;
   
   // Restored updaters for profile
@@ -67,7 +67,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       inviteCode: "MKT-123", 
       current: 500, 
       target: 1000, 
-      duration: "weekly",
+      duration: "12 Weeks",
+      maturityDate: "2026-08-15", // Added to mock data
       isInflationProof: false,
       hasPaidThisRound: [],
       nextTurn: "Tunde",
@@ -102,13 +103,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return true;
   };
 
+  // Synced implementation to handle maturityDate and the turnOrder array
   const createNewCircle = (
     name: string, 
     purpose: string, 
     target: number, 
     duration: string, 
-    isInflationProof: boolean,
-    numMembers: number = 6
+    maturityDate: string,
+    turnOrder: string[]
   ) => {
     const newCircle = {
       id: Date.now().toString(),
@@ -118,11 +120,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       current: 0,
       target,
       duration,
-      isInflationProof,
+      maturityDate,
+      isInflationProof: false,
       hasPaidThisRound: [],
-      nextTurn: "You", // First turn usually the creator
-      numMembers,
-      members: [userName]
+      nextTurn: turnOrder[0] || userName, 
+      numMembers: turnOrder.length || 1,
+      members: turnOrder.length ? turnOrder : [userName]
     };
     
     setCircles(prev => [...prev, newCircle]);
